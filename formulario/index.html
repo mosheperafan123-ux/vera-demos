@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tu página web — cuéntanos cómo la quieres</title>
+<meta name="robots" content="noindex, nofollow" />
+<style>
+  @font-face { font-family: 'Open Sauce One'; src: url('../_assets/fonts/OpenSauceOne-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+  @font-face { font-family: 'Open Sauce One'; src: url('../_assets/fonts/OpenSauceOne-Medium.ttf') format('truetype'); font-weight: 500; font-display: swap; }
+  @font-face { font-family: 'Open Sauce One'; src: url('../_assets/fonts/OpenSauceOne-SemiBold.ttf') format('truetype'); font-weight: 600; font-display: swap; }
+  @font-face { font-family: 'Open Sauce One'; src: url('../_assets/fonts/OpenSauceOne-Bold.ttf') format('truetype'); font-weight: 700 900; font-display: swap; }
+
+  :root { --tinta:#0a0a0a; --tinta-2:#5c5c5c; --tinta-3:#8e8e8e; --linea:#e4e4e4; --papel:#fff; --papel-2:#fafafa; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--papel); color:var(--tinta);
+         font-family:'Open Sauce One', system-ui, -apple-system, sans-serif;
+         font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 2.5rem 1.25rem 5rem; }
+  header { margin-bottom: 2.25rem; }
+  .kicker { font-size:.7rem; text-transform:uppercase; letter-spacing:.16em; color:var(--tinta-3); }
+  h1 { font-size: clamp(1.7rem, 5vw, 2.5rem); line-height:1.1; margin:.6rem 0 .75rem; font-weight:700; letter-spacing:-.02em; }
+  .intro { color:var(--tinta-2); font-size:.95rem; max-width:56ch; }
+  .bloque { border:1px solid var(--linea); border-radius:16px; padding:1.25rem 1.25rem 1.4rem; margin-bottom:1rem; background:var(--papel); }
+  .bloque h2 { font-size:1.05rem; font-weight:600; margin:0 0 1rem; letter-spacing:-.01em; }
+  .campo { margin-bottom:1.1rem; }
+  .campo:last-child { margin-bottom:0; }
+  .q { display:block; font-size:.88rem; color:var(--tinta-2); margin-bottom:.4rem; }
+  input[type=text], textarea {
+    width:100%; font:inherit; font-size:.95rem; color:var(--tinta); background:var(--papel-2);
+    border:1px solid var(--linea); border-radius:10px; padding:.6rem .75rem; resize:vertical;
+  }
+  input[type=text]:focus, textarea:focus { outline:none; border-color:var(--tinta); background:var(--papel); }
+  .sino { display:flex; gap:.5rem; }
+  .opt { flex:1; font:inherit; font-size:.9rem; font-weight:600; cursor:pointer; padding:.55rem;
+         background:transparent; color:var(--tinta); border:1px solid var(--linea); border-radius:10px; }
+  .opt[aria-pressed="true"] { background:var(--tinta); color:var(--papel); border-color:var(--tinta); }
+  .pie { position:sticky; bottom:0; background:var(--papel); border-top:1px solid var(--linea);
+         padding:.9rem 0; margin-top:1.5rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
+  .btn { font:inherit; font-size:.95rem; font-weight:600; cursor:pointer; padding:.7rem 1.5rem;
+         background:var(--tinta); color:var(--papel); border:1px solid var(--tinta); border-radius:999px; }
+  .btn[disabled] { opacity:.45; cursor:default; }
+  .estado { font-size:.85rem; color:var(--tinta-2); }
+  .aviso { border:1px solid var(--linea); border-radius:16px; padding:1.5rem; color:var(--tinta-2); font-size:.95rem; }
+  .ok h1 { margin-bottom:.5rem; }
+  @media (prefers-color-scheme: dark) {
+    :root { --tinta:#f2f2f2; --tinta-2:#a8a8a8; --tinta-3:#767676; --linea:#2a2a2a; --papel:#0a0a0a; --papel-2:#141414; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="app"><p class="estado">Cargando…</p></div>
+</div>
+
+<script>
+(function () {
+  var API = "https://vera-vera-lastest.yvhdpr.easypanel.host";
+  var app = document.getElementById('app');
+  var params = new URLSearchParams(location.search);
+  var id = params.get('id');
+  var t = params.get('t');
+
+  function aviso(titulo, texto) {
+    app.innerHTML = '<header><h1></h1></header><div class="aviso"></div>';
+    app.querySelector('h1').textContent = titulo;
+    app.querySelector('.aviso').textContent = texto;
+  }
+
+  if (!id || !t) {
+    aviso('Enlace incompleto', 'Este enlace no trae los datos de tu negocio. Pídele a Moshe que te reenvíe el link completo.');
+    return;
+  }
+  if (!API) {
+    aviso('Formulario no disponible', 'Falta configurar la dirección del servidor. Avísale a Moshe.');
+    return;
+  }
+
+  var url = API + '/api/formulario?id=' + encodeURIComponent(id) + '&t=' + encodeURIComponent(t);
+
+  fetch(url, { cache: 'no-store' })
+    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+    .then(function (res) {
+      if (!res.ok) { aviso('Enlace no válido', res.d && res.d.error ? res.d.error : 'No pudimos abrir tu formulario.'); return; }
+      pintar(res.d.nombre || 'tu negocio', res.d.respuestas || {}, res.d.enviado);
+    })
+    .catch(function () {
+      aviso('No pudimos conectar', 'Revisa tu conexión e intenta de nuevo. Si sigue igual, escríbele a Moshe por WhatsApp.');
+    });
+
+  function pintar(nombre, respuestas, yaEnviado) {
+    app.innerHTML =
+      '<header>' +
+        '<div class="kicker">Vera</div>' +
+        '<h1></h1>' +
+        '<p class="intro">Estas respuestas son las que usamos para convertir la página de muestra en tu web definitiva. ' +
+        'No hace falta contestar todo: lo que dejes en blanco lo dejamos como está en la muestra. ' +
+        'Se va guardando solo mientras escribes.</p>' +
+      '</header>' +
+      "\n    <section class=\"bloque\">\n      <h2>Identidad del negocio</h2>\n      <div class=\"campo\" data-id=\"nombre_mostrar\" data-tipo=\"texto\">\n    <label class=\"q\" for=\"f-nombre_mostrar\">¿El nombre aparece exactamente como lo quiere? Si no, ¿cómo debería aparecer?</label>\n    <input id=\"f-nombre_mostrar\" type=\"text\" placeholder=\"Ej: &quot;Odontología Sonrisa Perfecta&quot; en vez de…\" />\n  </div>\n<div class=\"campo\" data-id=\"eslogan\" data-tipo=\"texto\">\n    <label class=\"q\" for=\"f-eslogan\">¿Tiene un eslogan o frase propia para el inicio de la página?</label>\n    <input id=\"f-eslogan\" type=\"text\" placeholder=\"Ej: &quot;Tu sonrisa, nuestra obsesión&quot;\" />\n  </div>\n<div class=\"campo\" data-id=\"logo\" data-tipo=\"sino\">\n      <label class=\"q\" for=\"f-logo\">¿Tiene logo propio para usar en la página?</label>\n      <div class=\"sino\" role=\"group\">\n        <button type=\"button\" class=\"opt\" data-valor=\"si\">Sí</button>\n        <button type=\"button\" class=\"opt\" data-valor=\"no\">No</button>\n      </div>\n    </div>\n    </section>\n\n    <section class=\"bloque\">\n      <h2>Servicios</h2>\n      <div class=\"campo\" data-id=\"servicios_quitar\" data-tipo=\"multilinea\">\n      <label class=\"q\" for=\"f-servicios_quitar\">¿Cuáles servicios de la demo NO ofrece y hay que quitar?</label>\n      <textarea id=\"f-servicios_quitar\" rows=\"3\" placeholder=\"Lista de servicios a quitar\"></textarea>\n    </div>\n<div class=\"campo\" data-id=\"servicios_agregar\" data-tipo=\"multilinea\">\n      <label class=\"q\" for=\"f-servicios_agregar\">¿Qué servicios ofrece que falten en la demo?</label>\n      <textarea id=\"f-servicios_agregar\" rows=\"3\" placeholder=\"Un servicio por línea, con breve descripción si quiere\"></textarea>\n    </div>\n<div class=\"campo\" data-id=\"servicio_estrella\" data-tipo=\"texto\">\n    <label class=\"q\" for=\"f-servicio_estrella\">¿Cuál es su servicio estrella (el que más quiere destacar)?</label>\n    <input id=\"f-servicio_estrella\" type=\"text\" placeholder=\"\" />\n  </div>\n<div class=\"campo\" data-id=\"precios_visibles\" data-tipo=\"sino\">\n      <label class=\"q\" for=\"f-precios_visibles\">¿Quiere mostrar precios o &quot;desde $X&quot; en los servicios?</label>\n      <div class=\"sino\" role=\"group\">\n        <button type=\"button\" class=\"opt\" data-valor=\"si\">Sí</button>\n        <button type=\"button\" class=\"opt\" data-valor=\"no\">No</button>\n      </div>\n    </div>\n    </section>\n\n    <section class=\"bloque\">\n      <h2>Fotos</h2>\n      <div class=\"campo\" data-id=\"fotos_reales\" data-tipo=\"sino\">\n      <label class=\"q\" for=\"f-fotos_reales\">¿Quiere usar fotos reales de su local, equipo y trabajos?</label>\n      <div class=\"sino\" role=\"group\">\n        <button type=\"button\" class=\"opt\" data-valor=\"si\">Sí</button>\n        <button type=\"button\" class=\"opt\" data-valor=\"no\">No</button>\n      </div>\n    </div>\n<div class=\"campo\" data-id=\"fotos_donde\" data-tipo=\"multilinea\">\n      <label class=\"q\" for=\"f-fotos_donde\">¿En qué partes? (portada, galería, equipo, antes/después…)</label>\n      <textarea id=\"f-fotos_donde\" rows=\"3\" placeholder=\"Ej: portada con la fachada, galería de resultados\"></textarea>\n    </div>\n    </section>\n\n    <section class=\"bloque\">\n      <h2>Testimonios y reseñas</h2>\n      <div class=\"campo\" data-id=\"resenas_google\" data-tipo=\"sino\">\n      <label class=\"q\" for=\"f-resenas_google\">¿Usamos sus reseñas reales de Google en la página?</label>\n      <div class=\"sino\" role=\"group\">\n        <button type=\"button\" class=\"opt\" data-valor=\"si\">Sí</button>\n        <button type=\"button\" class=\"opt\" data-valor=\"no\">No</button>\n      </div>\n    </div>\n<div class=\"campo\" data-id=\"testimonios_propios\" data-tipo=\"multilinea\">\n      <label class=\"q\" for=\"f-testimonios_propios\">¿Tiene testimonios de clientes que quiera incluir tal cual?</label>\n      <textarea id=\"f-testimonios_propios\" rows=\"3\" placeholder=\"Nombre + frase (uno por línea)\"></textarea>\n    </div>\n    </section>\n\n    <section class=\"bloque\">\n      <h2>Horario y contacto</h2>\n      <div class=\"campo\" data-id=\"horario\" data-tipo=\"multilinea\">\n      <label class=\"q\" for=\"f-horario\">Horario real de atención (por día)</label>\n      <textarea id=\"f-horario\" rows=\"3\" placeholder=\"Ej: L-V 8am-6pm · Sáb 9am-2pm · Dom cerrado\"></textarea>\n    </div>\n<div class=\"campo\" data-id=\"contacto_mostrar\" data-tipo=\"texto\">\n    <label class=\"q\" for=\"f-contacto_mostrar\">¿Qué teléfono/WhatsApp debe aparecer en la página?</label>\n    <input id=\"f-contacto_mostrar\" type=\"text\" placeholder=\"Si es distinto al de la demo\" />\n  </div>\n<div class=\"campo\" data-id=\"direccion_ok\" data-tipo=\"texto\">\n    <label class=\"q\" for=\"f-direccion_ok\">¿La dirección del mapa es correcta? Si no, ¿cuál es?</label>\n    <input id=\"f-direccion_ok\" type=\"text\" placeholder=\"Corrección de dirección o sede adicional\" />\n  </div>\n<div class=\"campo\" data-id=\"redes\" data-tipo=\"multilinea\">\n      <label class=\"q\" for=\"f-redes\">Redes sociales a mostrar (Instagram, Facebook, TikTok…)</label>\n      <textarea id=\"f-redes\" rows=\"3\" placeholder=\"@usuario de cada red\"></textarea>\n    </div>\n    </section>\n\n    <section class=\"bloque\">\n      <h2>Secciones de la página</h2>\n      <div class=\"campo\" data-id=\"secciones_quitar\" data-tipo=\"multilinea\">\n      <label class=\"q\" for=\"f-secciones_quitar\">¿Alguna sección de la demo que quiera QUITAR? (galería, preguntas frecuentes, planes/medios de pago…)</label>\n      <textarea id=\"f-secciones_quitar\" rows=\"3\" placeholder=\"Cuáles y por qué\"></textarea>\n    </div>\n<div class=\"campo\" data-id=\"secciones_agregar\" data-tipo=\"multilinea\">\n      <label class=\"q\" for=\"f-secciones_agregar\">¿Qué le gustaría AGREGAR? (agendamiento online, catálogo, promociones, equipo/doctores, blog…)</label>\n      <textarea id=\"f-secciones_agregar\" rows=\"3\" placeholder=\"Qué necesita y para qué\"></textarea>\n    </div>\n    </section>\n\n    <section class=\"bloque\">\n      <h2>Textos</h2>\n      <div class=\"campo\" data-id=\"textos_cambiar\" data-tipo=\"multilinea\">\n      <label class=\"q\" for=\"f-textos_cambiar\">¿Algún texto de la demo que quiera cambiar? (títulos, &quot;sobre nosotros&quot;, preguntas frecuentes…)</label>\n      <textarea id=\"f-textos_cambiar\" rows=\"3\" placeholder=\"Qué dice hoy → qué debería decir\"></textarea>\n    </div>\n    </section>\n\n    <section class=\"bloque\">\n      <h2>Dominio y correo</h2>\n      <div class=\"campo\" data-id=\"dominio_deseado\" data-tipo=\"texto\">\n    <label class=\"q\" for=\"f-dominio_deseado\">¿Qué dominio le gustaría? (.com / .com.co / .co)</label>\n    <input id=\"f-dominio_deseado\" type=\"text\" placeholder=\"Ej: sonrisaperfecta.com.co\" />\n  </div>\n<div class=\"campo\" data-id=\"correo_corp\" data-tipo=\"sino\">\n      <label class=\"q\" for=\"f-correo_corp\">¿Quiere correo corporativo? (info@sudominio.com)</label>\n      <div class=\"sino\" role=\"group\">\n        <button type=\"button\" class=\"opt\" data-valor=\"si\">Sí</button>\n        <button type=\"button\" class=\"opt\" data-valor=\"no\">No</button>\n      </div>\n    </div>\n    </section>\n\n    <section class=\"bloque\">\n      <h2>Otros ajustes</h2>\n      <div class=\"campo\" data-id=\"otros\" data-tipo=\"multilinea\">\n      <label class=\"q\" for=\"f-otros\">¿Algo más que quiera agregar, quitar o cambiar?</label>\n      <textarea id=\"f-otros\" rows=\"3\" placeholder=\"Cualquier detalle extra\"></textarea>\n    </div>\n    </section>" +
+      '<div class="pie">' +
+        '<button type="button" class="btn" id="enviar">Enviar respuestas</button>' +
+        '<span class="estado" id="estado"></span>' +
+      '</div>';
+    app.querySelector('h1').textContent = nombre + ': ¿cómo quieres tu página?';
+
+    var estado = document.getElementById('estado');
+    if (yaEnviado) estado.textContent = 'Ya nos habías enviado tus respuestas. Puedes cambiarlas y volver a enviarlas.';
+
+    // Rellena lo que ya estuviera guardado (por si vuelve al link después).
+    Array.prototype.forEach.call(app.querySelectorAll('.campo'), function (campo) {
+      var cid = campo.getAttribute('data-id');
+      var valor = respuestas[cid] || '';
+      if (campo.getAttribute('data-tipo') === 'sino') {
+        Array.prototype.forEach.call(campo.querySelectorAll('.opt'), function (b) {
+          b.setAttribute('aria-pressed', String(b.getAttribute('data-valor') === valor));
+          b.addEventListener('click', function () {
+            var yaEstaba = b.getAttribute('aria-pressed') === 'true';
+            Array.prototype.forEach.call(campo.querySelectorAll('.opt'), function (o) { o.setAttribute('aria-pressed', 'false'); });
+            b.setAttribute('aria-pressed', String(!yaEstaba));
+            guardarPronto();
+          });
+        });
+      } else {
+        var input = campo.querySelector('input, textarea');
+        input.value = valor;
+        input.addEventListener('input', guardarPronto);
+      }
+    });
+
+    document.getElementById('enviar').addEventListener('click', function () { guardar(true); });
+
+    var timer = null;
+    function guardarPronto() {
+      estado.textContent = '';
+      clearTimeout(timer);
+      // Borrador cada 1.2s de calma: guardar en cada tecla castigaría al que
+      // escribe desde el celular con mala señal.
+      timer = setTimeout(function () { guardar(false); }, 1200);
+    }
+
+    function leer() {
+      var out = {};
+      Array.prototype.forEach.call(app.querySelectorAll('.campo'), function (campo) {
+        var cid = campo.getAttribute('data-id');
+        if (campo.getAttribute('data-tipo') === 'sino') {
+          var marcado = campo.querySelector('.opt[aria-pressed="true"]');
+          out[cid] = marcado ? marcado.getAttribute('data-valor') : '';
+        } else {
+          out[cid] = campo.querySelector('input, textarea').value;
+        }
+      });
+      return out;
+    }
+
+    function guardar(final) {
+      var boton = document.getElementById('enviar');
+      if (final) { boton.disabled = true; estado.textContent = 'Enviando…'; }
+      fetch(API + '/api/formulario', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id, t: t, respuestas: leer(), final: !!final })
+      })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          boton.disabled = false;
+          if (!res.ok) { estado.textContent = res.d && res.d.error ? res.d.error : 'No se pudo guardar.'; return; }
+          estado.textContent = final
+            ? '¡Listo! Recibimos tus respuestas. Moshe te escribe por WhatsApp.'
+            : 'Guardado';
+        })
+        .catch(function () {
+          boton.disabled = false;
+          estado.textContent = final
+            ? 'No pudimos enviarlo. Revisa tu conexión e intenta otra vez.'
+            : 'Sin conexión — no se guardó';
+        });
+    }
+  }
+})();
+</script>
+</body>
+</html>
